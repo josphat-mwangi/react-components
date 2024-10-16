@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react'
 import {
   Autocomplete,
   Box,
@@ -18,117 +19,125 @@ import {
   TextField,
   Typography,
   useTheme,
-} from "@mui/material";
+} from '@mui/material'
 import {
   DatePicker,
   DateTimePicker,
   LocalizationProvider,
-} from "@mui/x-date-pickers";
-import { AdapterMoment as Adapter } from "@mui/x-date-pickers/AdapterMoment";
-import moment from "moment";
-import { CButton } from "../Buttons";
-import { Icon } from "@iconify/react";
-import React, { useEffect, useMemo } from "react";
+} from '@mui/x-date-pickers'
+import { AdapterMoment as Adapter } from '@mui/x-date-pickers/AdapterMoment'
+import moment from 'moment'
+import React, { useEffect, useId, useMemo, useState } from 'react'
+import { CButton } from '../Buttons'
 
-import { CheckBox, CheckBoxOutlineBlank } from "@mui/icons-material";
-import {  LoadingButtonProps } from "@mui/lab";
-import DateRangePicker from '@mui/lab/DateRangePicker';
+import { LoadingButtonProps } from '@mui/lab'
+import DateRangePicker from '@mui/lab/DateRangePicker'
 
 type FieldType =
-  | "text"
-  | "textarea"
-  | "email"
-  | "password"
-  | "number"
-  | "date"
-  | "datetime"
-  | "daterange"
-  | "switch"
-  | "checkbox"
-  | "radio"
-  | "select"
-  | "multiselect"
-  | "search"
-  | "file"
-  | "custom";
+  | 'text'
+  | 'textarea'
+  | 'email'
+  | 'password'
+  | 'number'
+  | 'date'
+  | 'datetime'
+  | 'date-range'
+  | 'switch'
+  | 'checkbox'
+  | 'radio'
+  | 'select'
+  | 'multiselect'
+  | 'search'
+  | 'file'
+  | 'custom'
 
 interface SelectOption {
-  label: string;
-  value: string;
+  label: string
+  value: string
 }
 
 interface Grow {
-  xs: number;
-  sm: number;
-  md: number;
-  lg: number;
+  xs: number
+  sm: number
+  md: number
+  lg: number
 }
 
 interface ChangeEvent {
   target: {
-    name: string;
-    value: any;
-  };
-}
-
-export interface CreateFieldProps {
-  type?: FieldType;
-  multiline?: boolean;
-  rows?: number;
-  options?: SelectOption[];
-  value?: string;
-  onChange?: (e: any) => void;
+    name: string
+    value: any
+  }
 }
 
 export interface FormField {
-  name: string;
-  label: string;
-  type: FieldType;
-  value: string;
-  accept?: string;
-  onChange: (e: ChangeEvent) => void;
-  options?: SelectOption[]; // for select
-  component?: React.ReactNode; // for custom
-  size?: "small" | "medium";
-  required?: boolean;
-  placeholder?: string;
-  disabled?: boolean;
-  multiline?: boolean;
-  rows?: number;
-  hidden?: boolean;
-  min?: number;
-  max?: number;
-  minDate?: Date;
-  maxDate?: Date;
-  format?: string;
-  grow?: Grow;
-  startText?: string; 
-  endText?: string;
+  loading: boolean
+  name: string
+  label: string
+  type?: FieldType
+  multiline?: boolean
+  rows?: number
+  options?: SelectOption[]
+  value: string
+  accept?: string
+  onChange: (e: ChangeEvent) => void
+  onBlur: () => void
+  component?: React.ReactNode // for custom
+  size?: 'small' | 'medium'
+  required?: boolean
+  placeholder?: string
+  disabled?: boolean
+  hidden?: boolean
+  min?: number
+  max?: number
+  minDate?: Date
+  maxDate?: Date
+  format?: string
+  grow?: Grow
+  startText?: string
+  endText?: string
 }
 
 interface FormProps {
-  component?: "div" | "form";
-  fields: FormField[];
-  fieldSpacing: number;
-  onSubmit: () => void;
-  onCancel?: () => void;
-  submitText?: string;
-  cancelText?: string;
-  showButtons?: boolean;
-  showCancelButton?: boolean;
-  submitButtonProps?: LoadingButtonProps;
-  cancelButtonProps?: ButtonProps;
+  component?: 'div' | 'form'
+  fields: FormField[]
+  fieldSpacing: number
+  onSubmit: () => void
+  onCancel?: () => void
+  submitText?: string
+  cancelText?: string
+  showButtons?: boolean
+  showCancelButton?: boolean
+  submitButtonProps?: LoadingButtonProps
+  cancelButtonProps?: ButtonProps
+}
+
+const Loading = () => {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100%',
+      }}>
+      <Typography variant="h6">Loading...</Typography>
+    </Box>
+  )
 }
 
 export const SearchField = ({ field }: { field: FormField }) => {
   const selected = useMemo(() => {
-    return field.options?.find((opt) => opt.value === field.value) ?? null;
-  }, [field.value, field.options]);
+    return field.options?.find((opt) => opt.value === field.value) ?? null
+  }, [field.value, field.options])
 
-  const handleChange = (e: any, newValue: SelectOption | null) =>
+  const handleChange = (e: any, newValue: SelectOption | null) => {
     field.onChange({
-      target: { name: field.name, value: newValue?.value ?? "" },
-    });
+      target: { name: field.name, value: newValue?.value ?? '' },
+    })
+  }
+
+  if (field.loading) return <Loading />
 
   return (
     <FormControl fullWidth>
@@ -148,29 +157,32 @@ export const SearchField = ({ field }: { field: FormField }) => {
         isOptionEqualToValue={(prev, next) => prev.value === next.value}
       />
     </FormControl>
-  );
-};
+  )
+}
 
 const MultiSelectField = ({ field }: { field: FormField }) => {
-  const [selected, setSelected] = React.useState<SelectOption[]>([]);
+  const [values, setValues] = useState<SelectOption[]>([])
 
-  // initialize selected options
   useEffect(() => {
-    const selectedOptions = field.options?.filter((opt) =>
-      field.value.includes(opt.value)
-    );
-    setSelected(selectedOptions ?? []);
-  }, []);
+    const currentValues = []
+    for (const option of field?.options ?? []) {
+      if (field.value.includes(option.value)) {
+        currentValues.push(option)
+      }
+    }
+    setValues(currentValues)
+  }, [])
 
-  // update field value when selected options change
   useEffect(() => {
     field.onChange({
       target: {
         name: field.name,
-        value: selected.map((opt) => opt.value),
+        value: values.map((opt) => opt.value),
       },
-    });
-  }, [selected]);
+    })
+  }, [values])
+
+  if (field.loading) return <Loading />
 
   return (
     <FormControl fullWidth>
@@ -179,10 +191,10 @@ const MultiSelectField = ({ field }: { field: FormField }) => {
         id={`${field.name}-label`}
         options={field?.options ?? []}
         disableCloseOnSelect
-        value={selected}
+        value={values}
         getOptionLabel={(option) => option.label}
         isOptionEqualToValue={(prev, next) => prev.value === next.value}
-        onChange={(e, newValue) => setSelected(newValue)}
+        onChange={(e, newValues) => setValues(newValues)}
         renderOption={(props, option) => {
           return (
             <li key={option.value} {...props}>
@@ -190,11 +202,11 @@ const MultiSelectField = ({ field }: { field: FormField }) => {
                 icon={<Icon icon="mdi:checkbox-blank-outline" />}
                 checkedIcon={<Icon icon="mdi:checkbox-marked" />}
                 style={{ marginRight: 8 }}
-                checked={selected.map((s) => s.value).includes(option.value)}
+                checked={values.map((s) => s.value).includes(option.value)}
               />
               {option.label}
             </li>
-          );
+          )
         }}
         renderTags={(value, getTagProps) => {
           return value.map((option, index) => (
@@ -203,22 +215,23 @@ const MultiSelectField = ({ field }: { field: FormField }) => {
               key={option.value}
               label={option.label}
             />
-          ));
+          ))
         }}
         renderInput={(params) => (
           <TextField
             {...params}
             label={field.label}
-            required={field.required && selected.length === 0}
-            placeholder={field?.placeholder ?? ""}
+            required={field.required && values.length === 0}
+            placeholder={field?.placeholder ?? ''}
           />
         )}
       />
     </FormControl>
-  );
-};
+  )
+}
 
 export const SelectField = ({ field }: { field: FormField }) => {
+  if (field.loading) return <Loading />
   return (
     <FormControl fullWidth>
       <InputLabel id={`${field.name}-label`}>{field.label}</InputLabel>
@@ -232,11 +245,10 @@ export const SelectField = ({ field }: { field: FormField }) => {
         onChange={(e) => {
           field.onChange({
             target: { name: field.name, value: e.target.value },
-          });
+          })
         }}
         size={field.size}
-        required={field.required}
-      >
+        required={field.required}>
         {(field?.options ?? []).map((option) => (
           <MenuItem key={option.value} value={option.value}>
             {option.label}
@@ -244,21 +256,21 @@ export const SelectField = ({ field }: { field: FormField }) => {
         ))}
       </Select>
     </FormControl>
-  );
-};
+  )
+}
 
 export const DateField = ({ field }: { field: FormField }) => {
   return (
     <FormControl fullWidth>
       <LocalizationProvider dateAdapter={Adapter}>
         <DatePicker
-          format={field?.format ?? "DD/MM/Y"}
+          format={field?.format ?? 'DD/MM/Y'}
           label={field.label}
           value={moment(field.value)}
           minDate={field.minDate ? moment(field.minDate) : undefined}
           maxDate={field.maxDate ? moment(field.maxDate) : undefined}
           onChange={(newValue) => {
-            field.onChange({ target: { name: field.name, value: newValue } });
+            field.onChange({ target: { name: field.name, value: newValue } })
           }}
           slotProps={{
             textField: {
@@ -273,8 +285,8 @@ export const DateField = ({ field }: { field: FormField }) => {
         />
       </LocalizationProvider>
     </FormControl>
-  );
-};
+  )
+}
 
 export const DateTimeField = ({ field }: { field: FormField }) => {
   return (
@@ -287,38 +299,53 @@ export const DateTimeField = ({ field }: { field: FormField }) => {
           minDate={field.minDate ? moment(field.minDate) : undefined}
           maxDate={field.maxDate ? moment(field.maxDate) : undefined}
           onChange={(newValue) => {
-            field.onChange({ target: { name: field.name, value: newValue } });
+            field.onChange({ target: { name: field.name, value: newValue } })
           }}
         />
       </LocalizationProvider>
     </FormControl>
-  );
-};
+  )
+}
 
 export const DateRangeField = ({ field }: { field: FormField }) => {
-  const [value, setValue] = React.useState<[moment.Moment | null, moment.Moment | null]>([null, null]);
+  const [value, setValue] = React.useState<
+    [moment.Moment | null, moment.Moment | null]
+  >([null, null])
 
   useEffect(() => {
-    const startDate = field.value && field.value[0] ? moment(field.value[0]) : null;
-    const endDate = field.value && field.value[1] ? moment(field.value[1]) : null;
-    setValue([startDate, endDate]);
-  }, [field.value]);
-
+    try {
+      if (Array.isArray(field.value) && field.value.length === 2) {
+        const startDate = moment(field.value[0])
+        const endDate = moment(field.value[1])
+        if (startDate.isValid() && endDate.isValid()) {
+          setValue([startDate, endDate])
+        } else {
+          throw new Error('Invalid date range, should be an array of 2 dates')
+        }
+      } else {
+        throw new Error('Invalid date range, should be an array of 2 dates')
+      }
+    } catch (error) {
+      console.log('Invalid value for DateRangeField:', error)
+    }
+  }, [field.value])
 
   return (
     <FormControl fullWidth>
       <LocalizationProvider dateAdapter={Adapter}>
         <DateRangePicker
-          format={field?.format ?? "DD/MM/Y"}
+          format={field?.format ?? 'DD/MM/Y'}
           startText={field.startText ?? 'Start'}
           endText={field.endText ?? 'End'}
           value={value}
           minDate={field.minDate ? moment(field.minDate) : undefined}
           maxDate={field.maxDate ? moment(field.maxDate) : undefined}
-          onChange={(newValue: [moment.Moment | null, moment.Moment | null]) => {
-            field.onChange({ target: { name: field.name, value: newValue } });
+          onChange={(
+            newValue: [moment.Moment | null, moment.Moment | null]
+          ) => {
+            field.onChange({ target: { name: field.name, value: newValue } })
           }}
-          renderInput={(startProps:any, endProps:any) => (
+          renderInput={(startProps: any, endProps: any) => (
             <>
               <TextField {...startProps} label={`${field.label} Start`} />
               <Box sx={{ mx: 2 }}> to </Box>
@@ -328,8 +355,8 @@ export const DateRangeField = ({ field }: { field: FormField }) => {
         />
       </LocalizationProvider>
     </FormControl>
-  );
-};
+  )
+}
 
 export const SwitchField = ({ field }: { field: FormField }) => {
   return (
@@ -341,15 +368,15 @@ export const SwitchField = ({ field }: { field: FormField }) => {
             onChange={(e) => {
               field.onChange({
                 target: { name: field.name, value: e.target.checked },
-              });
+              })
             }}
           />
         }
         label={field.label}
       />
     </FormControl>
-  );
-};
+  )
+}
 
 export const CheckBoxField = ({ field }: { field: FormField }) => {
   return (
@@ -357,19 +384,20 @@ export const CheckBoxField = ({ field }: { field: FormField }) => {
       <FormControlLabel
         control={
           <Checkbox
+            required={field.required}
             checked={Boolean(field.value)}
             onChange={(e) => {
               field.onChange({
                 target: { name: field.name, value: e.target.checked },
-              });
+              })
             }}
           />
         }
         label={field.label}
       />
     </FormControl>
-  );
-};
+  )
+}
 
 export const RadioGroupField = ({ field }: { field: FormField }) => {
   return (
@@ -383,9 +411,8 @@ export const RadioGroupField = ({ field }: { field: FormField }) => {
         onChange={(e) => {
           field.onChange({
             target: { name: field.name, value: e.target.value },
-          });
-        }}
-      >
+          })
+        }}>
         {(field?.options ?? []).map((option) => (
           <FormControlLabel
             key={option.value}
@@ -396,137 +423,150 @@ export const RadioGroupField = ({ field }: { field: FormField }) => {
         ))}
       </RadioGroup>
     </FormControl>
-  );
-};
+  )
+}
 
 export const DefaultField = ({ field }: { field: FormField }) => {
+  const inputId = useId()
   const handleChange = (e: any) => {
-    const value = e.target.value;
+    const value = e.target.value
 
     // check if number field  and min and max are defined
-    if (field.type === "number" && field.min !== undefined) {
+    if (field.type === 'number' && field.min !== undefined) {
       if (Number(value) < field.min) {
-        e.target.value = field.min;
-        return;
+        e.target.value = field.min
+        return
       }
     }
 
-    if (field.type === "number" && field.max !== undefined) {
+    if (field.type === 'number' && field.max !== undefined) {
       if (Number(value) > field.max) {
-        e.target.value = field.max;
-        return;
+        e.target.value = field.max
+        return
       }
     }
 
-    field.onChange(e);
-  };
+    field.onChange(e)
+  }
 
   return (
     <FormControl fullWidth>
-      <TextField {...field} onChange={handleChange} />
+      <TextField
+        id={inputId}
+        type={field.type}
+        name={field.name}
+        label={field.label}
+        value={field.value}
+        size={field.size}
+        multiline={field.multiline}
+        rows={field.rows}
+        required={field.required}
+        disabled={field.disabled}
+        placeholder={field.placeholder}
+        onChange={handleChange}
+        onBlur={field.onBlur}
+      />
     </FormControl>
-  );
-};
+  )
+}
 
 export const FileField = ({ field }: { field: FormField }) => {
-  const theme = useTheme();
+  const theme = useTheme()
   return (
     <FormControl fullWidth>
       <Box
         sx={{
-          position: "relative",
+          position: 'relative',
           py: 1.5,
           px: 2,
-          border: "1px solid #ccc",
+          border: '1px solid #ccc',
           borderRadius: 1,
-        }}
-      >
+        }}>
         <Typography
           variant="caption"
           sx={{
-            top: "-10px",
-            left: "10px",
+            top: '-10px',
+            left: '10px',
             pb: 1,
-            position: "absolute",
+            position: 'absolute',
             backgroundColor: theme.palette.background.paper,
-            padding: "0 5px",
-          }}
-        >
+            padding: '0 5px',
+          }}>
           {field.label}
         </Typography>
         <input
           type="file"
           id={field.name}
           name={field.name}
-          accept={field?.accept ?? "*"}
+          accept={field?.accept ?? '*'}
           onChange={(e) => {
             field.onChange({
               target: {
                 name: field.name,
                 value: e.target.files?.length ? e.target.files[0] : null,
               },
-            });
+            })
           }}
         />
       </Box>
     </FormControl>
-  );
-};
+  )
+}
 
 const CustomField = ({ field }: { field: FormField }) => {
-  return <>{field.component}</>;
-};
+  return <>{field.component}</>
+}
 
 const FormFieldComponent = ({ field }: { field: FormField }) => {
   switch (field.type) {
-    case "search":
-      return <SearchField field={field} />;
-    case "select":
-      return <SelectField field={field} />;
-    case "multiselect":
-      return <MultiSelectField field={field} />;
-    case "date":
-      return <DateField field={field} />;
-    case "datetime":
-      return <DateTimeField field={field} />;
-    case "daterange":
-      return <DateRangeField field={field} />;
-    case "switch":
-      return <SwitchField field={field} />;
-    case "checkbox":
-      return <CheckBoxField field={field} />;
-    case "radio":
-      return <RadioGroupField field={field} />;
-    case "file":
-      return <FileField field={field} />;
-    case "custom":
-      return <CustomField field={field} />;
-    case "email":
-    case "number":
-    case "password":
-    case "text":
+    case 'search':
+      return <SearchField field={field} />
+    case 'select':
+      return <SelectField field={field} />
+    case 'multiselect':
+      return <MultiSelectField field={field} />
+    case 'date':
+      return <DateField field={field} />
+    case 'datetime':
+      return <DateTimeField field={field} />
+    case 'date-range':
+      return <DateRangeField field={field} />
+    case 'switch':
+      return <SwitchField field={field} />
+    case 'checkbox':
+      return <CheckBoxField field={field} />
+    case 'radio':
+      return <RadioGroupField field={field} />
+    case 'file':
+      return <FileField field={field} />
+    case 'custom':
+      return <CustomField field={field} />
+    case 'email':
+    case 'number':
+    case 'password':
+    case 'text':
     default:
-      return <DefaultField field={field} />;
+      return <DefaultField field={field} />
   }
-};
+}
 
 const Container = ({ component, onSubmit, children }: any) => {
-  if (component === "form") {
-    return <form onSubmit={onSubmit}>{children}</form>;
+  if (component === 'form') {
+    return <form onSubmit={onSubmit}>{children}</form>
   }
-  return <div>{children}</div>;
-};
+  return <div>{children}</div>
+}
 
 export default function Form({
-  component = "form",
+  component = 'form',
   fields = [],
   fieldSpacing = 4,
   onSubmit = () => {},
   onCancel = () => {},
   showButtons = true,
   showCancelButton = true,
-  submitText = "Save",
-  cancelText = "Cancel",
+  submitText = 'Save',
+  cancelText = 'Cancel',
   submitButtonProps,
   cancelButtonProps,
 }: FormProps) {
@@ -535,21 +575,21 @@ export default function Form({
       <Grid container spacing={fieldSpacing}>
         {fields.map((field, index) => {
           // check if the field's required prop is defined, if not set it to true
-          if (field.required === undefined) field.required = true;
-          if (field.hidden) return null;
+          if (field.required === undefined) field.required = true
+          if (field.hidden) return null
 
           // define grow dimensions
-          const xs = field.grow?.xs ?? 12;
-          const sm = field.grow?.sm ?? xs;
-          const md = field.grow?.md ?? sm;
-          const lg = field.grow?.lg ?? md;
+          const xs = field.grow?.xs || 12
+          const sm = field.grow?.sm || xs
+          const md = field.grow?.md || sm
+          const lg = field.grow?.lg || md
 
-          delete field.grow;
+          delete field.grow
           return (
             <Grid item xs={xs} sm={sm} md={md} lg={lg} key={index}>
               <FormFieldComponent field={field} />
             </Grid>
-          );
+          )
         })}
 
         {showButtons && (
@@ -562,8 +602,7 @@ export default function Form({
                 <CButton
                   onClick={onCancel}
                   variant="outlined"
-                  {...cancelButtonProps}
-                >
+                  {...cancelButtonProps}>
                   {cancelText}
                 </CButton>
               )}
@@ -572,5 +611,5 @@ export default function Form({
         )}
       </Grid>
     </Container>
-  );
+  )
 }
